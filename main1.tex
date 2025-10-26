@@ -1,0 +1,370 @@
+\documentclass[11pt]{beamer}
+
+% Theme
+\usetheme{Madrid}
+\usecolortheme{beaver}
+\usefonttheme{professionalfonts}
+
+% Packages
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{tikz}
+\usetikzlibrary{arrows,positioning}
+\usepackage{listings}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{epstopdf}
+\usepackage{mathrsfs}
+\usepackage{booktabs}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+
+% Bibliography (uncomment refs frame at bottom to show)
+\usepackage{biblatex}
+\addbibresource{refs.bib}
+
+% Code style
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue},
+  commentstyle=\color{gray},
+  stringstyle=\color{red!60!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single
+}
+
+% Title
+%\title[Lecture No.]{Topic Name}
+%\author[name1\\name2]{\textcolor{blue}{Name1 \\ Name 2}\\ \scriptsize Dept. of CSE, IIT Bombay}
+%\institute[IIT Bombay]{IIT Bombay}
+% \date{\small July 31, 2025}
+
+
+
+% Title
+\title[CS6007 Lecture: Lecture Name]{Presentation on Topic Name}
+
+% Title
+\title[CS6007 Lecture]{Presentation on Topic Name}
+
+% Show ONLY names in the bottom-left footer via the optional [] argument
+\author[Name 1, Name 2]{%
+  \textbf{Presented by:}\\
+  \begin{tabular}{rl}
+    \textcolor{blue}{Abhay Chandra(roll no.)} & Dept. of CSE \\
+    \textcolor{blue}{Chaitanya De(roll no.)} & Dept. of CSE \\
+  \end{tabular}\\[1em]
+  \textbf{Course:} CS6007:Multi-Agent Machine Learning\\[0.3em]
+  \textbf{Instructor:} Prof.\ Avishek Ghosh
+}
+
+\institute[IIT Bombay]{IIT Bombay}
+% \date{\small August 2025}
+
+
+
+
+% Small logo on each frametitle (top-right)
+\addtobeamertemplate{frametitle}{}{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \node[anchor=north east, xshift=0.2cm, yshift=0.4cm] at (current page.north east) {%
+      \includegraphics[height=1.2cm]{iitb_logo.png}%
+    };
+  \end{tikzpicture}%
+}
+
+\begin{document}
+
+% Title slide with faint logo background
+\usebackgroundtemplate{%
+  \tikz[remember picture,overlay] \node[opacity=0.2] at ([yshift=-2cm]current page.center) {%
+    \includegraphics[width=0.6\paperwidth]{iitb_logo.png}%
+  };
+}
+\begin{frame}
+  \titlepage
+\end{frame}
+\usebackgroundtemplate{} % clear background
+
+% Outline
+\begin{frame}{Outline}
+  \setbeamertemplate{section in toc}[sections numbered]
+  \tableofcontents
+\end{frame}
+
+%--------------------------------------------------
+% Content
+
+\section{Introduction}
+
+\begin{frame}{Motivation}
+  \begin{itemize}
+    \item Content recommendation is crucial for online services
+    \item Users have diverse preferences and interact with different content
+    \item Challenge: Identify clusters of similar users with unknown group structure
+    \item Need adaptive algorithms that scale to large numbers of users
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Problem Statement}
+  \begin{itemize}
+    \item Partition $n$ users into $m$ clusters: $\mathcal{V} = V_1, V_2, \ldots, V_m$ (unknown)
+    \item Users within each cluster share similar preferences
+    \item At each round $t$, a user is served with context vectors
+    \item Goal: Design algorithm to learn clustering and optimize recommendations
+    \item Trade-off between exploration and exploitation
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Key Challenges}
+  \begin{itemize}
+    \item \textbf{Implicit network:} Social structure is encoded in unknown clustering
+    \item \textbf{Adaptive clustering:} Users' preferences may shift over time
+    \item \textbf{Limited feedback:} Only payoff signals from served users are observed
+    \item \textbf{Scalability:} Algorithm must handle large numbers of users and features
+    \item \textbf{Regret bounds:} Achieve theoretical guarantees with high probability
+  \end{itemize}
+\end{frame}
+
+\section{Learning Model}
+
+\begin{frame}{Problem Formulation}
+  \begin{itemize}
+    \item Users: $V = \{1, \ldots, n\}$ partitioned into $m$ clusters $V_1, \ldots, V_m$
+    \item Each cluster $j$ has unknown parameter vector $u_j \in \mathbb{R}^d$
+    \item At round $t$, user $i_t$ is served with context vectors $C_{i_t} = \{x_1, \ldots, x_s\}$ from $\mathbb{R}^d$
+    \item Payoff: $o_t(x) = u_{j(i_t)} \cdot x + \eta_{j(i_t)}(x)$ where $\eta$ is bounded noise
+    \item Assume well-separated clusters: $\|u_i - u_j\| > \gamma > 0$ for $i \neq j$
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Model Assumptions}
+  \begin{enumerate}
+    \item User behavior encodes unknown clustering with users in same cluster having similar preferences
+    \item Context vectors in cluster $C_{i_t}$ generated from ball surface near mean
+    \item Payoff assumptions: linear in cluster vectors with bounded additive noise
+    \item Well-separated clusters ensure identifiability
+    \item Sequential learning: At each round, algorithm observes user, context, and selected payoff
+  \end{enumerate}
+\end{frame}
+
+\section{Algorithm: CLUB}
+
+\begin{frame}{CLUB Algorithm Overview}
+  \textbf{Cluster of Bandits (CLUB)} - Key Ideas:
+  \begin{itemize}
+    \item Maintain estimate $w_{i,t}$ for each user's preference vector
+    \item Detect potential cluster merges using \textbf{confidence bounds}
+    \item Use \textbf{least-squares} estimation for cluster vectors
+    \item Adaptively update cluster structure based on observed similarity
+    \item Efficient update: $O(d^2)$ per round
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{CLUB Algorithm: Pseudocode (Part 1)}
+  \textbf{Initialization:}
+  \begin{itemize}
+    \item Initialize estimate vectors $w_{i,0} = 0 \in \mathbb{R}^d$, matrices $M_{i,0} = I$
+    \item Clusters initially: $\mathcal{V}_{1,1} = V$, number of clusters $m_1 = 1$
+  \end{itemize}
+  
+  \textbf{For each round $t = 1, 2, \ldots, T$:}
+  \begin{enumerate}
+    \item Receive user $i_t \in V$ and context vectors $C_t = \{x_1, \ldots, x_s\}$
+    \item Select context $x_t$ to recommend (bandit selection)
+    \item Observe payoff $o_t \in [-1, 1]$
+    \item Update estimates and confidence bounds
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{CLUB Algorithm: Pseudocode (Part 2)}
+  \textbf{Update Phase:}
+  \begin{itemize}
+    \item Compute confidence bound $\text{CB}_{i,t-1}(x)$ for each user
+    \item Update matrix: $M_{i,t} = M_{i,t-1} + x x^T$
+    \item Update vector: $b_{i,t} = b_{i,t-1} + o_t x$
+    \item Least-squares estimate: $w_{i,t} = M_{i,t}^{-1} b_{i,t}$
+  \end{itemize}
+  
+  \textbf{Clustering Step:}
+  \begin{itemize}
+    \item For each pair of nodes, check if $\|w_{i,t-1} - w_{i',t-1}\|$ exceeds threshold
+    \item If distance is small: merge clusters
+    \item Update aggregate weight vectors for clusters
+    \item Maintain graph of connected components
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Key Algorithm Properties}
+  \begin{itemize}
+    \item \textbf{Greedy clustering:} Clusters grow from initial singletons by detecting similarity
+    \item \textbf{Confidence-based merging:} Uses concentration inequalities to decide merges
+    \item \textbf{Adaptive updates:} Parameter estimates improve as more data arrives
+    \item \textbf{Efficient:} Maintains only necessary cluster information
+    \item \textbf{Regret-aware:} Design balances learning true structure and optimizing payoffs
+  \end{itemize}
+\end{frame}
+
+\section{Theoretical Analysis}
+
+\begin{frame}{Regret Bound}
+  \textbf{Main Result (Theorem 1):}
+  
+  With high probability, the CLUB algorithm achieves cumulative regret:
+  $$\sum_{t=1}^{T} r_t = \tilde{O}\left(\left(\sigma d + \sqrt{d}\right) \sqrt{T} \left(1 + \sum_{j=1}^{m} \sqrt{\frac{|V_j|}{n}}\right)\right)$$
+  
+  where:
+  \begin{itemize}
+    \item $d$ = number of features
+    \item $T$ = number of rounds
+    \item $\sigma$ = noise level
+    \item $|V_j|$ = size of cluster $j$
+    \item $\tilde{O}$ hides poly-logarithmic factors
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Regret Analysis Components}
+  The regret bound consists of three main terms:
+  
+  \begin{enumerate}
+    \item \textbf{Feature complexity term:} $(\sigma d + \sqrt{d})\sqrt{T}$
+      \begin{itemize}
+        \item Reflects difficulty of learning $d$-dimensional vectors
+        \item Noise contributes factor of $\sigma$
+      \end{itemize}
+    
+    \item \textbf{Transient term:} Convergence to minimal eigenvalue
+      \begin{itemize}
+        \item Cost of learning cluster structure
+        \item Depends on geometric properties
+      \end{itemize}
+    
+    \item \textbf{Cluster size term:} $1 + \sum_{j=1}^{m} \sqrt{|V_j|/n}$
+      \begin{itemize}
+        \item Small clusters incur more regret
+        \item Balanced clusters are favorable
+      \end{itemize}
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Key Theoretical Insights}
+  \begin{itemize}
+    \item \textbf{High-probability analysis:} Uses concentration inequalities and union bounds
+    \item \textbf{Dimension-dependent complexity:} Regret scales with $\sqrt{d}$, not $d$
+    \item \textbf{Compared to state-of-the-art:} CLUB achieves regret improvement by factor of $\sqrt{m}$
+    \item \textbf{Clustering correctness:} Algorithm correctly identifies true clusters with high probability
+    \item \textbf{Lemma 1:} Connectivity of random graphs ensures clusters can be detected
+  \end{itemize}
+\end{frame}
+
+\section{Experiments}
+
+\begin{frame}{Experimental Setup}
+  \textbf{Datasets:}
+  \begin{itemize}
+    \item \textbf{Synthetic:} Controlled experiments with known clusters and varying sizes
+    \item \textbf{LastFM:} Music streaming service, 1,892 users, 17,632 items
+    \item \textbf{Delicious:} Social bookmarking, diverse payoff structures
+    \item \textbf{Yahoo:} News recommendations, real-world scale and complexity
+  \end{itemize}
+  
+  \textbf{Baselines:}
+  \begin{itemize}
+    \item LinUCB-ONE: Single model for all users
+    \item LinUCB-IND: Independent models per user
+    \item GOBLIN: Idealized algorithm with known clusters
+    \item CLAIRVOYANT: Oracle algorithm
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Results on Synthetic Data}
+  \begin{itemize}
+    \item CLUB consistently outperforms LinUCB-ONE and LinUCB-IND
+    \item Performance gap widens as clusters become more balanced
+    \item Algorithm scales to larger numbers of clusters
+    \item Robustness to noise levels and feature dimensions
+    \item Faster convergence with larger cluster sizes
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Results on Real Datasets}
+  \begin{itemize}
+    \item \textbf{LastFM:} CLUB outperforms baselines on cumulative regret metric
+    \item \textbf{Delicious:} Competitive performance in "many niches" scenario
+    \item \textbf{Yahoo CTR:} Demonstrates clustering benefit on large-scale data
+    \item Algorithm captures actual user interest similarities
+    \item Parameter tuning via cross-validation improves performance
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Experimental Insights}
+  \begin{itemize}
+    \item Clustering approach is beneficial when users naturally group by preference
+    \item Performance depends on cluster structure and separation
+    \item Algorithm adapts well to different data characteristics
+    \item Real-world datasets show consistent improvements
+    \item Trade-off between exploration and cluster learning affects regret
+  \end{itemize}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Summary}
+  \textbf{Key Contributions:}
+  \begin{enumerate}
+    \item Novel algorithmic approach to online clustering of bandits
+    \item Achieves $\tilde{O}(\sqrt{T})$ regret with clustering benefit
+    \item Theoretical analysis with high-probability guarantees
+    \item Empirical validation on synthetic and real datasets
+    \item Practical algorithm with efficient updates
+  \end{enumerate}
+\end{frame}
+
+\begin{frame}{Advantages and Limitations}
+  \textbf{Advantages:}
+  \begin{itemize}
+    \item Provable theoretical guarantees
+    \item Automatic cluster discovery
+    \item Scalable to large user populations
+  \end{itemize}
+  
+  \textbf{Limitations:}
+  \begin{itemize}
+    \item Assumes well-separated clusters
+    \item Requires known cluster count (variant with data-dependent separation possible)
+    \item Performance sensitive to feature dimensionality
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Future Directions}
+  \begin{itemize}
+    \item Extend to non-linear payoff functions
+    \item Investigate privacy-preserving clustering algorithms
+    \item Apply to other recommendation domains (video, ads, etc.)
+    \item Dynamic cluster updates for evolving user preferences
+    \item Integration with other machine learning techniques
+  \end{itemize}
+\end{frame}
+
+
+
+
+
+
+
+
+
+% External slide file (thank-you)
+\input{Thank_you_Slide}
+
+% References
+% \begin{frame}[allowframebreaks]{References}
+%   \printbibliography
+% \end{frame}
+
+\end{document}
