@@ -430,7 +430,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - **Project Repository**: https://github.com/abhaychandra123/CS6007-proj
 - **Issues**: https://github.com/abhaychandra123/CS6007-proj/issues
-- **Course Website**: [IIT Madras CS6007](https://www.cse.iitm.ac.in/)
+- **Course Website**: [CS6007 - Trustworthy Machine Learning](https://sites.google.com/iitb.ac.in/cse-iitb-maml/home)
 
 ---
 
