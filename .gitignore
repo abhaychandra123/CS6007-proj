@@ -54,7 +54,8 @@ htmlcov/
 *.cover
 
 # Data (keep structure, ignore content)
-data/*/
+data/**
+fair_client_selection/data/**
 !data/.gitkeep
 
 # Results and Outputs
